@@ -1,0 +1,175 @@
+---
+title: "task_3"
+author: "Madeline Berger"
+date: "2/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(tidyverse)
+library(sf)
+library(tmap)
+library(here)
+library(ggspatial)
+
+lulc <- read_sf(dsn = here("LULC"), layer = "Land_Use_Land_Cover_LULC") %>% 
+  select(landcover)
+
+watersheds <- read_sf(dsn = here("Watersheds"), layer = "Watersheds")
+
+```
+
+
+##Task 3: Make a map of Hawaiian land use/land cover and watersheds 
+
+![Source:Photo by Heather Morse on Unsplash](hawaii.jpg)
+
+
+###Introduction
+[insert some text about the project]
+
+
+
+**References**
+Land use/land cover data: http://geoportal.hawaii.gov/datasets/land-use-land-cover-lulc
+Watershed data: http://geoportal.hawaii.gov/datasets/watersheds
+
+
+###Explore the data
+```{r}
+#intial exploration
+plot(lulc)
+
+
+#may want to just visualize a few land use or land covers, or just one island.
+
+
+unique(lulc$landcover)
+
+#there are a lot of land uses / cover. I'm going to distill some of the uses into broader categories
+
+```
+**Plan is to: simplify the data, crop to a certain location, and create a clean graph with both types of data on there**
+###Data cleaning and wrangling 
+Land use and land cover
+```{r}
+
+#I am more interested in the natural land areas, so am going to combine the data based on some of the metadata categories
+lulc_simple_2 <- lulc %>% 
+  mutate(
+    landcover = case_when(
+      landcover %in% c("Residential",
+                       "Other Urban or Built-up Land", 
+                       "Commercial and Services", 
+                       "Industrial", 
+                       "Transportation, Communications and Utilities",
+                       "Mixed Urban or Built-up Land", 
+                       "Industrial and Commercial Complexes"   ) ~"Urban",
+      landcover %in% c("Cropland and Pasture", 
+                       "Orchards, Groves, Vineyards, Nurseries and Ornamental Horticultural Areas", 
+                       "Other Agricultural Land",
+                       "Confined Feeding Operations") ~ "Agricultural",
+      landcover %in% c("Herbaceous Rangeland",
+                       "Shrub and Brush Rangeland",
+                       "Mixed Rangeland") ~ "Rangeland",
+      landcover %in% c("Lakes",
+                       "Streams and Canals",
+                       "Reservoirs",
+                       "Bays and Estuaries") ~ "Waterways",
+      landcover %in% c("Mixed Barren Land",
+                       "Transitional Areas",
+                       "Bare Exposed Rock",
+                       "Sandy Areas Other than Beaches") ~ "Barren Land",
+      TRUE ~ landcover) #keep the rest the same
+  ) %>% 
+  filter(landcover != 0)
+
+unique(lulc_simple_2$landcover)
+
+lulc_simple_2
+
+plot(lulc_simple_2)
+
+
+```
+
+Watershed data
+```{r}
+
+#get rid of the some of the columns to simplify the data
+
+watersheds_simple <- watersheds %>%
+  select(wuname, hucarea, area_sqmi)
+
+plot(watersheds_simple)
+
+
+
+```
+
+
+###Visualize
+
+```{r}
+
+ggplot(data = lulc_simple_2)+
+  geom_sf(data = lulc_simple_2, 
+          color = NA, 
+          aes(fill = landcover))+
+  annotation_scale(location = "bl", width_hint = 0.5) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+         pad_x = unit(0.5, "cm"), pad_y = unit(0.5, "cm"),
+        style = north_arrow_fancy_orienteering)+
+  scale_fill_paletteer_d("calecopal::figmtn")+
+  theme(panel.grid.major = element_line(color = gray(.1), 
+                                        linetype = "dashed", size = 0.1), 
+        panel.background = element_rect(fill = "aliceblue")
+  )+
+  labs(x = "Longitude", y = "Latitude")
+
+#to do = change the colors, and clip it
+
+#how to clip 
+#world_base +
+#coord_sf(xlim = c(-20, 50), ylim = c(-40, 40), expand = FALSE)
+
+
+
+```
+
+Watersheds
+```{r}
+
+ggplot(data = watersheds_simple)+
+  geom_sf(data = watersheds_simple, 
+          color = NA, 
+          aes(fill = area_sqmi))+
+  annotation_scale(location = "bl", width_hint = 0.5) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+         pad_x = unit(0.5, "cm"), pad_y = unit(0.5, "cm"),
+        style = north_arrow_fancy_orienteering)+
+  scale_fill_paletteer_c("calecopal::figmtn")+
+  theme(panel.grid.major = element_line(color = gray(.1), 
+                                        linetype = "dashed", size = 0.1), 
+        panel.background = element_rect(fill = "aliceblue")
+  )+
+  labs(x = "Longitude", y = "Latitude")
+
+
+
+```
+
+
+#
+- Clearly and professionally show the different watersheds for all main Hawaiian islands, or for an island or region of your choosing
+
+There is flexibility! You can decide: 
+- Do you want your maps to be static or interactive?
+- What areas do you want to focus on? 
+- Do you want to show land use/landcover and watersheds in a single map or in separate maps? 
+- Whatever you decide is great, just make sure that your final outputs are presented in a nice professional HTML that you’d be proud to share with someone so that they can see your awesome spatial code! 
+
+
